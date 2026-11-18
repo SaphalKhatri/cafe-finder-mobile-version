@@ -29,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Discover',
+          title: 'Discover ',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name={focused ? 'cafe' : 'cafe-outline'}
