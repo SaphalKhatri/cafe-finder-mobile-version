@@ -54,19 +54,7 @@ export default function MapScreen() {
       longitude ?? undefined
     ),
 });
-useEffect(() => {
-  console.log('========== MAP DEBUG ==========');
-  console.log('User latitude:', latitude);
-  console.log('User longitude:', longitude);
-  console.log('Location loading:', locLoading);
-  console.log('Cafe API loading:', isLoading);
-  console.log('API error:', error);
-  console.log('API successful:', isSuccess);
-  console.log('Total cafes returned:', cafes.length);
-  console.log('Valid cafes:', validCafes.length);
-  console.log('Cafe data:', cafes);
-  console.log('================================');
-}, [latitude, longitude, locLoading, isLoading, isSuccess, error, cafes]);
+
 
   // Filter cafes that have valid latitude & longitude
 const validCafes = cafes.filter((cafe) => {

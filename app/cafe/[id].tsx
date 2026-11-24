@@ -10,23 +10,27 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Cafe } from '../../types/cafe';
 import { getCafeDetails, getFullImageUrl } from '../../services/cafeService';
+import {
+  checkIsFavorite,
+  addFavorite,
+  removeFavorite,
+} from '../../services/favoriteService';
 import { PLACEHOLDER_IMAGE } from '../../constants/config';
 import { useLocation } from '../../hooks/useLocation';
 
 export default function CafeDetailsScreen() {
   const { id, cafeData } = useLocalSearchParams<{ id: string; cafeData?: string }>();
+  const queryClient = useQueryClient();
   const { latitude, longitude } = useLocation();
 
-  // Instant display if passed from Home or Map screen
   const initialCafe: Cafe | null = cafeData ? JSON.parse(cafeData) : null;
-  const [isFavorite, setIsFavorite] = useState(false);
   const [imgError, setImgError] = useState(false);
 
-  // Fetch fresh details from backend (cached by TanStack Query)
+  // 1. Fetch fresh cafe details
   const {
     data: cafe = initialCafe,
     isLoading,
@@ -35,6 +39,29 @@ export default function CafeDetailsScreen() {
     queryKey: ['cafeDetail', id],
     queryFn: () => getCafeDetails(id, latitude, longitude),
     initialData: initialCafe,
+  });
+
+  // 2. Check if cafe is saved in PostgreSQL favorites
+  const { data: isFavorite = false } = useQuery<boolean>({
+    queryKey: ['isFavorite', id],
+    queryFn: () => checkIsFavorite(id),
+  });
+
+  // 3. Mutation for toggling favorites in PostgreSQL
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!cafe) return;
+      if (isFavorite) {
+        await removeFavorite(cafe.id);
+      } else {
+        await addFavorite(cafe);
+      }
+    },
+    onSuccess: () => {
+      // Invalidate both the favorites list and this cafe's status
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['isFavorite', id] });
+    },
   });
 
   if (isLoading && !cafe) {
@@ -64,11 +91,6 @@ export default function CafeDetailsScreen() {
         `https://www.google.com/maps/dir/?api=1&destination=${cafe.latitude},${cafe.longitude}`
       );
     }
-  };
-
-  const handleToggleFavorite = () => {
-    // Local toggle for now; connected to PostgreSQL in Step 8!
-    setIsFavorite((prev) => !prev);
   };
 
   const imageUri =
@@ -101,31 +123,34 @@ export default function CafeDetailsScreen() {
             </View>
           )}
 
-          {/* Favorite Floating Button */}
+          {/* Connected Favorite Toggle Button */}
           <TouchableOpacity
             style={styles.favoriteBtn}
-            onPress={handleToggleFavorite}
+            onPress={() => toggleFavoriteMutation.mutate()}
+            disabled={toggleFavoriteMutation.isPending}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={22}
-              color={isFavorite ? '#EF4444' : '#6F4E37'}
-            />
+            {toggleFavoriteMutation.isPending ? (
+              <ActivityIndicator size="small" color="#6F4E37" />
+            ) : (
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={22}
+                color={isFavorite ? '#EF4444' : '#6F4E37'}
+              />
+            )}
           </TouchableOpacity>
         </View>
 
         {/* Content Container */}
         <View style={styles.content}>
-          {/* Category Chip */}
           <View style={styles.categoryChip}>
             <Text style={styles.categoryText}>{cafe.category}</Text>
           </View>
 
-          {/* Cafe Name */}
           <Text style={styles.title}>{cafe.name}</Text>
 
-          {/* Stats Bar (Rating & Distance) */}
+          {/* Stats Bar */}
           <View style={styles.statsCard}>
             <View style={styles.statItem}>
               <View style={styles.statIconRow}>

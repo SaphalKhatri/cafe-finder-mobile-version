@@ -8,9 +8,16 @@ import { PLACEHOLDER_IMAGE } from '../constants/config';
 interface CafeCardProps {
   cafe: Cafe;
   onPress: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
-export const CafeCard: React.FC<CafeCardProps> = ({ cafe, onPress }) => {
+export const CafeCard: React.FC<CafeCardProps> = ({
+  cafe,
+  onPress,
+  isFavorite = false,
+  onToggleFavorite,
+}) => {
   const [imgSrc, setImgSrc] = useState({ uri: getFullImageUrl(cafe.photo_url) });
 
   return (
@@ -21,6 +28,27 @@ export const CafeCard: React.FC<CafeCardProps> = ({ cafe, onPress }) => {
           style={styles.image}
           onError={() => setImgSrc({ uri: PLACEHOLDER_IMAGE })}
         />
+
+        {/* Quick Favorite Button */}
+        {onToggleFavorite && (
+          <TouchableOpacity
+            style={styles.favoriteBadge}
+            onPress={(e) => {
+              e.stopPropagation(); // Prevents opening the details screen
+              onToggleFavorite();
+            }}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={18}
+              color={isFavorite ? '#EF4444' : '#6F4E37'}
+            />
+          </TouchableOpacity>
+        )}
+
+        {/* Open/Closed Badge */}
         {cafe.is_open !== null && (
           <View style={[styles.badge, cafe.is_open ? styles.openBadge : styles.closedBadge]}>
             <Text style={styles.badgeText}>{cafe.is_open ? 'Open' : 'Closed'}</Text>
@@ -77,7 +105,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EADECA',
     overflow: 'hidden',
-    elevation: 2, // Android drop shadow
+    elevation: 2,
   },
   imageContainer: {
     width: '100%',
@@ -88,6 +116,18 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  favoriteBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
   },
   badge: {
     position: 'absolute',
