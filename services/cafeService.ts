@@ -32,3 +32,21 @@ export const searchCafes = async (
 
   return data.results || [];
 };
+export const getCafeDetails = async (
+  placeId: string,
+  latitude?: number | null,
+  longitude?: number | null
+): Promise<Cafe> => {
+  const url = new URL(`${API_BASE_URL}/places/${placeId}/`);
+  if (latitude && longitude) {
+    url.searchParams.append('latitude', latitude.toString());
+    url.searchParams.append('longitude', longitude.toString());
+  }
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to load cafe details (HTTP ${response.status})`);
+  }
+
+  return response.json();
+};
